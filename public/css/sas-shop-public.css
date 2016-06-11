@@ -1,0 +1,109 @@
+/**
+ * All of the CSS for your public-facing functionality should be
+ * included in this file.
+ */
+
+ /* For mobile phones: */
+[class*="sas-shop-col-"] {
+    width: 100%;
+    float: left;
+    padding: 15px;
+}
+@media only screen and (min-width: 600px) {
+    /* For tablets: */
+    .sas-shop-col-m-1 {width: 8.33%;}
+    .sas-shop-col-m-2 {width: 16.66%;}
+    .sas-shop-col-m-3 {width: 25%;}
+    .sas-shop-col-m-4 {width: 33.33%;}
+    .sas-shop-col-m-5 {width: 41.66%;}
+    .sas-shop-col-m-6 {width: 50%;}
+    .sas-shop-col-m-7 {width: 58.33%;}
+    .sas-shop-col-m-8 {width: 66.66%;}
+    .sas-shop-col-m-9 {width: 75%;}
+    .sas-shop-col-m-10 {width: 83.33%;}
+    .sas-shop-col-m-11 {width: 91.66%;}
+    .sas-shop-col-m-12 {width: 100%;}
+}
+@media only screen and (min-width: 768px) {
+    /* For desktop: */
+    .sas-shop-col-1 {width: 8.33%;}
+    .sas-shop-col-2 {width: 16.66%;}
+    .sas-shop-col-3 {width: 25%;}
+    .sas-shop-col-4 {width: 33.33%;}
+    .sas-shop-col-5 {width: 41.66%;}
+    .sas-shop-col-6 {width: 50%;}
+    .sas-shop-col-7 {width: 58.33%;}
+    .sas-shop-col-8 {width: 66.66%;}
+    .sas-shop-col-9 {width: 75%;}
+    .sas-shop-col-10 {width: 83.33%;}
+    .sas-shop-col-11 {width: 91.66%;}
+    .sas-shop-col-12 {width: 100%;}
+}
+
+.sas-product-tabs {margin: 0 auto; min-width: 320px; max-width: 800px;}
+.sas-product-tab-content {background: #fff; color: #373737; border: 1px solid #cccccc;}
+.sas-product-tab-content > div {display: none; padding: 20px 25px 5px;}
+
+input[name=sas-product-tab] {display: none;}
+.sas-label-product-tab {display: inline-block; padding: 15px 25px; font-weight: 600; text-align: center;}
+.sas-label-product-tab:hover {color: #cccccc; cursor: pointer;}
+.sas-shop-product-tabs:checked + label {background: transparent; color: #cccccc;border-top: 1px solid #ccc; border-left: 1px solid #ccc;border-right: 1px solid #ccc;border-bottom: 1px solid #fff;position: relative;bottom: -1px;}
+
+
+
+#tab1:checked ~ .sas-product-tab-content #content1,
+#tab2:checked ~ .sas-product-tab-content #content2,
+#tab3:checked ~ .sas-product-tab-content #content3,
+#tab4:checked ~ .sas-product-tab-content #content4 {
+  display: block;
+}
+
+@media screen and (max-width: 400px) { .sas-label-product-tab { padding: 5px;font-size: 12px !important;} }
+
+.sas-shop-add-to-cart {
+    width: 100%;
+}
+.sas-shop-out-of-stock{
+	color: #b21717;
+}
+.sas-shop-btn{
+	background: #1a1a1a;
+    border: 0;
+    border-radius: 2px;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.046875em;
+    line-height: 1;
+    padding: 0.84375em 0.875em 0.78125em;
+    text-transform: uppercase;
+}
+.sas-shop-btn:hover{
+	background: #595959;
+    border: 0;
+    border-radius: 2px;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.046875em;
+    line-height: 1;
+    padding: 0.84375em 0.875em 0.78125em;
+    text-transform: uppercase;
+}
+.sas-shop-to-left{ float: left; }
+.sas-shop-to-right{ float: right; }
+.sas-shop-to-center{ margin: 0 auto; text-align: center;}
+
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg .sas-shop-table-2{vertical-align:top}
+@media screen and (max-width: 767px) {.tg {width: auto !important;}.tg col {width: auto !important;}.tg-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;}}
+
+.sas-shop-payments {
+    background: #f4f4f4;
+    padding: 10px;
+    border: 1px solid #DCDCDC;
+    margin-bottom: 1px;
+}
+.sas-shop-payment-colored-block{
+	display: none;
+}

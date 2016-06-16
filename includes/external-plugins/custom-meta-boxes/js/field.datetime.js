@@ -7,7 +7,7 @@ CMB.addCallbackForClonedField( ['CMB_Date_Field', 'CMB_Time_Field', 'CMB_Date_Ti
 
 	// Reinitialize all the datepickers
 	newT.find( '.cmb_datepicker' ).each(function () {
-		jQuery(this).attr( 'id', '' ).removeClass( 'hasDatepicker' ).removeData( 'datepicker' ).unbind().datepicker();
+		jQuery(this).attr( 'id', '' ).removeClass( 'hasDatepicker' ).removeData( 'datepicker' ).unbind().datepicker( { dateFormat: "dd-mm-yy" } );
 	});
 
 	// Reinitialize all the timepickers.
@@ -27,9 +27,9 @@ CMB.addCallbackForInit( function() {
 
 	// Datepicker
 	jQuery('.cmb_datepicker').each(function () {
-		jQuery(this).datepicker();
+		jQuery(this).datepicker( { dateFormat: "dd-mm-yy" } );
 	});
-	
+
 	// Wrap date picker in class to narrow the scope of jQuery UI CSS and prevent conflicts
 	jQuery("#ui-datepicker-div").wrap('<div class="cmb_element" />');
 

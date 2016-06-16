@@ -222,6 +222,54 @@ class Sas_Shop_Core_Helpers {
 		return $string;
 	}
 
+	public function sas_shop_shipping_names( $shipping_method ){
+
+		if( $shipping_method == 'free_shipping' ){
+			$name = 'shipping_free_name';
+		}
+		if( $shipping_method == 'flat_shipping' ){
+			$name = 'shipping_flat_name';
+		}
+
+		$shipping_name = Sas_Shop_Option::get_option($name);
+
+		return $shipping_name;
+
+
+	}
+
+	public function sas_shop_order_status_names( $order_status ){
+
+		/*
+			'options' => array( 'cancelled' => 'Cancelled', 'completed' => 'Completed', 'failed' => 'Failed', 'pending_payment' => 'Pending Payment', 'processing' => 'Processing', 'refunded' => 'Refunded'
+		*/
+		switch( $order_status ){
+			case 'cancelled':
+				$name = __('Cancelled', SAS_SHOP_NAME);
+			break;
+			case 'completed':
+				$name = __('Completed', SAS_SHOP_NAME);
+			break;
+			case 'failed':
+				$name = __('Failed', SAS_SHOP_NAME);
+			break;
+			case 'pending_payment':
+				$name = __('Pending Payment', SAS_SHOP_NAME);
+			break;
+			case 'processing':
+				$name = __('Processing', SAS_SHOP_NAME);
+			break;
+			case 'refunded':
+				$name = __('Refunded', SAS_SHOP_NAME);
+			break;
+
+		}
+
+		return $name;
+
+
+	}
+
 
 }
 ?>

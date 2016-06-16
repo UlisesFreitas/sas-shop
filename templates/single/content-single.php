@@ -71,16 +71,16 @@ while ( have_posts() ) : the_post();
 		<div class="sas-product-tabs">
 
 		  <input class="sas-shop-product-tabs" id="tab1" type="radio" name="sas-product-tab" checked>
-		  <label for="tab1" class="sas-label-product-tab"><?php _e('Product Information', 'sas-shop' ); ?></label>
+		  <label for="tab1" class="sas-label-product-tab"><?php _e('Product Description', 'sas-shop' ); ?></label>
 
 		  <input class="sas-shop-product-tabs" id="tab2" type="radio" name="sas-product-tab">
-		  <label for="tab2" class="sas-label-product-tab">London</label>
+		  <label for="tab2" class="sas-label-product-tab"><?php _e('Product Comments', 'sas-shop' ); ?></label>
 
-		  <input class="sas-shop-product-tabs" id="tab3" type="radio" name="sas-product-tab">
+		  <!--input class="sas-shop-product-tabs" id="tab3" type="radio" name="sas-product-tab">
 		  <label for="tab3" class="sas-label-product-tab">Mumbai</label>
 
 		  <input class="sas-shop-product-tabs" id="tab4" type="radio" name="sas-product-tab">
-		  <label for="tab4" class="sas-label-product-tab">Tokyo</label>
+		  <label for="tab4" class="sas-label-product-tab">Tokyo</label-->
 
 		  <div class="sas-product-tab-content">
 			  <div id="content1">
@@ -91,16 +91,16 @@ while ( have_posts() ) : the_post();
 			  </div>
 
 			  <div id="content2">
-				<p></p>
+				<p><?php comments_template( '', true ); ?></p>
 			  </div>
 
-			  <div id="content3">
+			  <!--div id="content3">
 				<p></p>
 			  </div>
 
 			  <div id="content4">
 				<p></p>
-			  </div>
+			  </div-->
 		  </div>
 
 		</div>

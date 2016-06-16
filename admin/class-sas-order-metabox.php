@@ -64,10 +64,10 @@ class Sas_Order_Metabox{
 		//$fields[] = array( 'id' => 'field-order-sku', 'name' => 'Order #' , 'type' => 'title' );
 
 		$fields[] = array( 'id' => 'field-order-date-creation', 'name' => 'Order Date', 'type' => 'date', 'cols' => '3' );
-		$fields[] = array( 'id' => 'field-order-time-creation', 'name' => 'Order Time', 'type' => 'time', 'cols' => '3' );
+		$fields[] = array( 'id' => 'field-order-time-creation', 'name' => 'Order Time', 'type' => 'text', 'cols' => '3' );
 
 		//$fields[] = array( 'id' => 'field-order-date-and-time', 'name' => 'Date & Time (unix) input field', 'type' => 'datetime_unix' , 'cols' => '6');
-		$fields[] = array( 'id' => 'field-order-status', 'name' => 'Order Status', 'type' => 'select', 'options' => array( 'cancelled' => 'Cancelled', 'completed' => 'Completed', 'failed' => 'Failed', 'pendig-payment' => 'Pending Payment', 'processing' => 'Processing', 'refunded' => 'Refunded',  ), 'allow_none' => false , 'cols' => '6');
+		$fields[] = array( 'id' => 'field-order-status', 'name' => 'Order Status', 'type' => 'select', 'options' => array( 'cancelled' => 'Cancelled', 'completed' => 'Completed', 'failed' => 'Failed', 'pending_payment' => 'Pending Payment', 'processing' => 'Processing', 'refunded' => 'Refunded',  ), 'allow_none' => false , 'cols' => '6');
 
 		$meta_boxes[] = array(
 			'title' => __('Order Details', $this->plugin_name ),

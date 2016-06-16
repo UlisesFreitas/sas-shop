@@ -295,6 +295,14 @@ class Sas_Shop_Settings_Definition {
 		$settings = array(
 			'general_tab' => array(
 
+				'sas_shop_email_manager_name'                       => array(
+					'name' => __( 'Shop name or Brand name for emails', self::$plugin_name ),
+					'type' => 'text'
+				),
+				'sas_shop_email_manager'                       => array(
+					'name' => __( 'Shop Email Manager', self::$plugin_name ),
+					'type' => 'text'
+				),
 				'sas_shop_location_address'                       => array(
 					'name' => __( 'Shop Address', self::$plugin_name ),
 					'type' => 'textarea'
@@ -330,7 +338,12 @@ class Sas_Shop_Settings_Definition {
 			),
 
 			'pages_tab'  => array(
-
+				'sas_shop_product_show_qty_front' => array(
+					'name' => __( 'Products qty on front', self::$plugin_name ),
+					'desc' => __( 'Set the number of products to display on Shop front page', self::$plugin_name ),
+					'type' => 'number',
+					'std'     => '8'
+				),
 				'sas_shop_page_shop' => array(
 					'name'    => __( 'Shop page', self::$plugin_name ),
 					'desc'    => __( 'Select a page to display the Shop font pages', self::$plugin_name ),

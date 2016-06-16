@@ -1,9 +1,12 @@
-<?php // print_r($_SESSION); ?>
 <?php
-if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0 ){
-	print_r($_SESSION);
+
+$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+$cart_data = $sessionHandler->sas_shop_get_data();
+$cart_id = $sessionHandler->get_cart_id();
+
+if( isset($cart_data[$cart_id]['cart_products']) && count($cart_data[$cart_id]['cart_products']) > 0){
 ?>
-<div class="cart-view-table-back">
+	<div class="cart-view-table-back">
 
 	<form method="post" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>">
 	<input type="hidden" name="action" value="update_cart" />
@@ -38,7 +41,7 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 			$sas_shop_price_num_decimals = Sas_Shop_Option::get_option( 'sas_shop_price_num_decimals' );
 			$currencySymbol = Sas_Shop_Settings_Definition::get_sas_shop_currency_symbol( Sas_Shop_Option::get_option( 'sas_shop_currency' ) );
 
-			foreach ($_SESSION["cart_products"] as $cart_itm)
+			foreach ($cart_data[$cart_id]["cart_products"] as $cart_itm)
 	        {
 
 
@@ -127,15 +130,16 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 
 	        }
 
-	        $_SESSION['total_cart_qty'] = $totalCartQty;
+	        //$_SESSION['total_cart_qty'] = $totalCartQty;
+	        $cart_data[$cart_id]['total_cart_qty'] = $totalCartQty;
+	        $sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
+
 
 			$grand_total = $total; //grand total
 
-			/*
-			 * Here we need to know how proces are set on Sas Shop if with/without taxes to add the correct amount to $grand_total
-			 *
-			 *
-			 */
+
+			//  Here we need to know how proces are set on Sas Shop if with/without taxes to add the correct amount to $grand_total
+
 			if($taxes_enabled == 1){
 
 				if($taxesIncluded != 'sas-shop-prices-with-tax'){
@@ -166,10 +170,10 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 	  	</form>
 
 	  	<?php
-	  		/*
-			 * Here calculate shipping
-			 *
-			 */
+
+			 // Here calculate shipping
+
+
 			$shipping_enabled = Sas_Shop_Option::get_option( 'sas_shop_enable_shipping' );
 			if($shipping_enabled == 1){
 
@@ -186,7 +190,9 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 			  	$shipping .= '<tbody>';
 
 
-				$shipping_checked = isset( $_SESSION[ 'shipping_checked']) ? $_SESSION['shipping_checked'] : '';
+				$shipping_checked = isset( $cart_data[$cart_id][ 'shipping_checked']) ? $cart_data[$cart_id]['shipping_checked'] : '';
+
+
 				$shipping_taxes = floatval('0.00');
 
 				$shipping_free_enabled = Sas_Shop_Option::get_option( 'shipping_free_enabled' );
@@ -250,7 +256,10 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 						<td>
 							<?php
 								$realsubtotal = '';
-								foreach($_SESSION["cart_products"] as $cart_itm){
+
+
+								//foreach($_SESSION["cart_products"] as $cart_itm){
+								foreach($cart_data[$cart_id]["cart_products"] as $cart_itm){
 									$realsubtotal = $realsubtotal + $cart_itm['product_price'] * $cart_itm['product_qty'];
 								}
 							?>
@@ -320,21 +329,18 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 <?php
 
 	if(isset($taxSum)){
-	$_SESSION['cart_taxes'] = $taxSum;
+		$cart_data[$cart_id]['cart_taxes'] = $taxSum;
 	}
-	$_SESSION['cart_subtotal'] = $realsubtotal;
-	$_SESSION['cart_total'] = $grand_total;
+	$cart_data[$cart_id]['cart_subtotal'] = $realsubtotal;
+	$cart_data[$cart_id]['cart_total'] = $grand_total;
+
+	$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
+
 
 
 
 }else{
 
-	unset($_SESSION['cart_products']);
-	unset($_SESSION['cart_subtotal']);
-	unset($_SESSION['cart_total']);
-	unset($_SESSION['total_cart_qty']);
-	unset($_SESSION['cart_taxes']);
-	unset($_SESSION['shipping_checked']);
 
 	$html = '';
 	$html .= '<div class="cart-view-table-front" id="view-cart">';
@@ -343,4 +349,5 @@ if( isset( $_SESSION["cart_products"] ) && count($_SESSION["cart_products"]) > 0
 	$html .= '</div>';
 
 	echo $html;
+
 }

@@ -13,18 +13,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <?php get_header(); ?>
 
-<?php do_action( 'sas_shop_add_to_cart_single_product' ); ?>
+	<?php do_action( 'sas_shop_add_to_cart_single_product' ); ?>
 
-<?php do_action( 'sas_shop_wrapper_start' ); ?>
+	<?php do_action( 'sas_shop_wrapper_start' ); ?>
 
-<?php do_action( 'sas_shop_wrapper_single_content' ); ?>
+	<?php do_action( 'sas_shop_wrapper_single_content' ); ?>
 
-<?php
+	<?php
 
-//	while ( have_posts() ) : the_post();
-//       Sas_Shop_Core_Helpers::sas_shop_get_template( 'single/content-single.php' );
-//	endwhile;
-?>
-<?php do_action( 'sas_shop_wrapper_end' ); ?>
+	//	while ( have_posts() ) : the_post();
+	//       Sas_Shop_Core_Helpers::sas_shop_get_template( 'single/content-single.php' );
+	//	endwhile;
+	?>
+	<?php do_action( 'sas_shop_wrapper_end' ); ?>
+
 <?php get_sidebar(); ?>
 <?php get_footer(); ?>

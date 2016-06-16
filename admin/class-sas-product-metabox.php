@@ -103,29 +103,45 @@ class Sas_Product_Metabox{
 
 		$fields = array();
 
-		$fields[] = array( 'id' => 'field-product-sku',  'name' => 'SKU #', 'type' => 'text', );
-		$fields[] = array( 'id' => 'field-product-display-sku',  'name' => 'Display product SKU on single product page', 'type' => 'checkbox',  );
+		$sku[] = array( 'id' => 'field-product-sku',  'name' => 'SKU #', 'type' => 'text', 'cols' => '12' );
+		$sku[] = array( 'id' => 'field-product-display-sku',  'name' => 'Display product SKU on single product page', 'type' => 'checkbox', 'cols' => '6'  );
 
-		$fields[] = array( 'id' => 'field-product-price',  'name' => 'Price', 'type' => 'text', 'cols' => 6 );
+		$meta_boxes[] = array(
+			'title' => __('Product SKU', $this->plugin_name ),
+			'pages' => $this->post_type,
+			'fields' => $sku
+		);
+
+
+
+		$fields[] = array( 'id' => 'field-product-price',  'name' => 'Price', 'type' => 'text', 'cols' => '6' );
 
 		if( isset($all_taxes_enabled) && $taxes_enabled == 1 ){
-			$fields[] = array( 'id' => 'field-sas-product-taxes', 'name' => 'Product tax', 'type' => 'select', 'options' => $all_taxes_enabled , 'allow_none' => false,'cols' => 6  );
-		}
-
-		if( isset($shipping_methods) && $shipping_enabled == 1 ){
-			$fields[] = array( 'id' => 'field-sas-product-shipping-select', 'name' => 'Select Product Shipping methods', 'type' => 'select', 'options' => $shipping_methods , 'multiple' => true );
+			$fields[] = array( 'id' => 'field-sas-product-taxes', 'name' => 'Product tax', 'type' => 'select', 'options' => $all_taxes_enabled , 'allow_none' => false,'cols' => '6'  );
 		}
 
 		$meta_boxes[] = array(
-			'title' => __('Product Price - Shipping - Taxes', $this->plugin_name ),
+			'title' => __('Product Price & Taxes', $this->plugin_name ),
 			'pages' => $this->post_type,
 			'fields' => $fields
 		);
 
+		/*
+		if( isset($shipping_methods) && $shipping_enabled == 1 ){
+			$shippings[] = array( 'id' => 'field-sas-product-shipping-select', 'name' => 'Select Product Shipping methods', 'type' => 'select', 'options' => $shipping_methods , 'multiple' => true );
+		}
+
+		$meta_boxes[] = array(
+			'title' => __('Product Shipping', $this->plugin_name ),
+			'pages' => $this->post_type,
+			'fields' => $shippings
+		);
+		*/
+
 		$stockFields = array();
 		$stockFields[] = array( 'id' => 'field-product-display-current-stock',  'name' => 'Display current stock on single product page', 'type' => 'checkbox' );
-		$stockFields[] = array( 'id' => 'field-product-current-stock',  'name' => 'Current Stock', 'type' => 'number' );
-		$stockFields[] = array( 'id' => 'field-product-max-stock',  'name' => 'Max Stock allowed', 'type' => 'number' );
+		$stockFields[] = array( 'id' => 'field-product-current-stock',  'name' => 'Current Stock', 'type' => 'number' , 'cols' => '6' );
+		$stockFields[] = array( 'id' => 'field-product-max-stock',  'name' => 'Max Stock allowed', 'type' => 'number' , 'cols' => '6' );
 
 		$meta_boxes[] = array(
 			'title' => __('Product Stock management', $this->plugin_name ),

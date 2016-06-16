@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<header class="page-header">Sas Shop</header>
 
-			<?php while ( have_posts() ) : the_post(); ?>
+			<?php // while ( have_posts() ) : the_post(); ?>
 
 				<?php
 					/*
@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				?>
 				<?php do_action( 'sas_shop_wrapper_loop' ); ?>
 
-			<?php endwhile; ?>
+			<?php // endwhile; ?>
 
 			<?php	//wp_reset_postdata(); ?>
 			<?php 	//wp_reset_query(); ?>
@@ -69,5 +69,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	?>
 	<?php do_action( 'sas_shop_wrapper_end' ); ?>
 
+
+<?php get_sidebar('sas-shop-sidebar-1'); ?>
 <?php get_sidebar(); ?>
 <?php get_footer( 'Shop' ); ?>

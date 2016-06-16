@@ -33,6 +33,8 @@ class Sas_Shop_Activator {
 
 		new Sas_Shop_Install();
 
+		Sas_Shop_Admin::SasRoles();
+
 		Sas_Shop_Admin::SASProduct();
 		Sas_Shop_Admin::SASOrders();
 

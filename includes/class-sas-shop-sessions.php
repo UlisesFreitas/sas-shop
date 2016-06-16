@@ -8,6 +8,28 @@
  * @subpackage Sas_Shop/public
  * @author     UlisesFreitas <ulises.freitas@gmail.com>
  */
+
+ /**
+		 *
+		 * Sample saving session
+
+
+		$array = array('cart' => array(
+										'cart_products' => array(
+																 'product_id' => '1')
+									    )
+					   );
+		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+		$sessionHandler->saveData(json_encode( $array) );
+
+		 */
+		 /*
+		  * Sample getting session
+
+		  print_r( $sessionHandler->getData() );
+
+		*/
+
 class Sas_Shop_Session_Handler {
 
 	/**
@@ -23,7 +45,6 @@ class Sas_Shop_Session_Handler {
 	 *
 	 * @var array
 	 */
-	 private $container;
 
 	 private $stored_data;
 
@@ -52,20 +73,29 @@ class Sas_Shop_Session_Handler {
 
 	public function __construct( ){
 
-
 		$this->stored_data = array();
-
-
 		$this->session_id = self::sas_shop_session_start();
 
+	}
 
+	/**
+	 * get_session_id function.
+	 *
+	 * @access public
+	 * @return void
+	 */
+	public function get_session_id(){
+		return $this->session_id;
+	}
 
-		//add_action( 'plugins_loaded', array( &$this, 'sas_shop_session_start' ) );
-
-		//print_r($this->stored_data);
-		//$this->write_data($array);
-		//$this->readData();
-
+	/**
+	 * get_session_id function.
+	 *
+	 * @access public
+	 * @return void
+	 */
+	public function get_cart_id(){
+		return 'cart_' . $this->session_id;
 	}
 
     /**
@@ -78,7 +108,7 @@ class Sas_Shop_Session_Handler {
 
 
 		if(! session_id() ){
-			session_start();
+			//session_start();
 		}
 
 		if( $this->session_id < 32 ){
@@ -107,32 +137,9 @@ class Sas_Shop_Session_Handler {
     		return '';
 	}
 
-	/**
-	 * GetIP function.
-	 *
-	 * @access public
-	 * @return void
-	 */
-	public function getIP(){
+	public function sas_shop_get_data(){
 
-    	foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key){
-        	if (array_key_exists($key, $_SERVER) === true){
-            	foreach (array_map('trim', explode(',', $_SERVER[$key])) as $ip){
-                	if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false){
-                    	return $ip;
-                	}else{
-	                	return false;
-                	}
-            	}
-        	}
-    	}
-	}
-
-
-
-	public function getData(){
-
-		$data = json_decode( self::readData() );
+		$data = json_decode( self::sas_shop_read_data() );
 		$this->stored_data = json_decode(json_encode($data), True);
 		return $this->stored_data;
 	}
@@ -144,11 +151,10 @@ class Sas_Shop_Session_Handler {
 	 *
 	 * @return array
 	 */
-	protected function readData() {
+	protected function sas_shop_read_data() {
 
 
 		$this->stored_data = get_option( "sas_session_{$this->session_id}" );
-
 
 		return $this->stored_data;
 	}
@@ -178,53 +184,38 @@ class Sas_Shop_Session_Handler {
 
 	}
 
-
-
-
     /**
 	 * Write the data from the current session to the data storage system.
 	 */
-	public function saveData($data) {
+	public function sas_shop_save_data($data) {
 
-		$this->container = $data;
-		delete_option( 'sas_session_' . $this->session_id );
-		add_option( 'sas_session_' . $this->session_id, $this->container, '', 'no' );
-
-	}
-	public static function SetSessionVar($name, $value){
-
-		if(!$name || !$value){
-			return false;
+		$this->stored_data = $data;
+		//delete_option( 'sas_session_' . $this->session_id );
+		if( get_option( "sas_session_{$this->session_id}" ) ){
+			 update_option( "sas_session_{$this->session_id}", $this->stored_data, '', 'no'  );
 		}else{
-			$_SESSION[$name] = $value;
+			add_option( "sas_session_{$this->session_id}", $this->stored_data, '', 'no' );
 		}
-
-	}
-
-	public static function GetSessionVar($name){
-
-			if (isset($_SESSION[$name])) {
-				 return $_SESSION[$name];
-			} else {
-				return false;
-			}
-
-	}
-
-	public static function DeleteSessionVar($name){
-
-		unset($_SESSION[$name]);
 
 	}
 
 	/**
 	 * Unset all session variables.
 	 */
-	public function wp_session_unset() {
-		$wp_session = self::getInstance();
+	public function sas_shop_session_unset() {
 
-		$wp_session->reset();
+		$sas_shop_session = self::getInstance();
+
+		$sas_shop_session->reset();
 	}
 
+	/**
+	 * Flushes all session variables.
+	 */
+	protected function reset() {
+		delete_option( "sas_session_{$this->session_id}" );
+		$this->stored_data = array();
+
+	}
 }
 ?>

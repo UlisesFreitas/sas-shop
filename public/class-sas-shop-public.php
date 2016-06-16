@@ -41,7 +41,12 @@ class Sas_Shop_Public {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
+		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+		$cart_id = $sessionHandler->get_cart_id();
 
+		if( ! $cart_id ){
+			self::start_cart_session();
+		}
 
 	}
 
@@ -89,9 +94,28 @@ class Sas_Shop_Public {
 
 		wp_register_script( $this->plugin_name . '-public', plugin_dir_url( __FILE__ ) . 'js/sas-shop-public.js' , array('jquery'), $this->version, false );
 		wp_localize_script( $this->plugin_name . '-public', 'sas_shop_ajax', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
-
-
 		wp_enqueue_script( $this->plugin_name . '-public', plugin_dir_url( __FILE__ ) . 'js/sas-shop-public.js', array( 'jquery' ), $this->version, false );
+
+		wp_enqueue_script($this->plugin_name . '-validation', plugin_dir_url(__FILE__) . 'validation/jquery.validate.min.js', array('jquery',$this->plugin_name . '-public'), $this->version, false );
+		wp_enqueue_script($this->plugin_name . '-additional-methods', plugin_dir_url(__FILE__) . 'validation/additional-methods.min.js', array('jquery'), $this->version, true );
+
+
+		if(is_page(get_option( 'sas_shop_sas-shop-checkout_page_id' ))){
+			wp_enqueue_script($this->plugin_name . '-validation', plugin_dir_url(__FILE__) . 'js/sas-shop-public-validate-checkout.js', array('jquery',$this->plugin_name . '-validation'), $this->version, false );
+		}
+	}
+
+	/**
+	 * start_cart_session function.
+	 *
+	 * @access public
+	 * @return void
+	 */
+	public function start_cart_session(){
+
+		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+		$cart_data = array( 'cart_'. $sessionHandler->get_session_id() => array( 'cart_products' => array() ) );
+		$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 
 	}
 
@@ -112,6 +136,12 @@ class Sas_Shop_Public {
      return $single_template;
 	}
 
+	/**
+	 * sas_shop_wrapper_single_content_display function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_wrapper_single_content_display(){
 		global $post;
 		if($post->post_type == 'sas_product') {
@@ -132,6 +162,8 @@ class Sas_Shop_Public {
 	    }
 	    return $page_template;
 	}
+
+
 
 	/**
 	 * get_cart_template function.
@@ -156,18 +188,375 @@ class Sas_Shop_Public {
 	 * @param mixed $page_template
 	 * @return void
 	 */
-	public static function get_checkout_template( $page_template ){
+	public static function get_checkout_template( $page_template, $attributes = array() ){
+
+		global $attributes;
+		$attributes['errors'] = array();
 
 	    if ( is_page( get_option( 'sas_shop_sas-shop-checkout_page_id' ) ) || is_page( 'sas-shop-checkout' ) ) {
+
+			$url_args = wp_parse_args( $_SERVER['REQUEST_URI'] );
+			$order_status = isset($url_args['order_status']) ? $url_args['order_status'] : NULL;
+			$confirmation = isset($url_args['sas_shop_confirmation']) ? $url_args['sas_shop_confirmation'] : NULL;
+			$order_id = isset($url_args['order']) ? $url_args['order'] : NULL;
+
+			if( 'GET' == $_SERVER['REQUEST_METHOD'] && $order_status != NULL && $order_id != NULL && $confirmation != NULL ){
+
+
+				$order = get_post( $order_id );
+				$order_meta = get_post_meta( $order->ID );
+
+				$confirmation_meta = get_post_meta($order_id, 'field-order-confirmation', true );
+				if( $confirmation != $confirmation_meta && !current_user_can( 'sas_shop_manager' ) ){
+					$attributes['sas_shop_this_is_not_your_order'] = '<h2>You are not allowed to see this content.</h2>';
+
+					$page_template = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/order.php';
+					return $page_template;
+					exit;
+				}
+
+				$attributes['sas_shop_order_id'] = $order_id;
+				$attributes['sas_shop_order_title'] = $order->post_title;
+				$attributes['sas_shop_order_meta'] = $order_meta;
+
+				$email_notification_order = get_post_meta( $order_id, 'field-email-customer-new-order' );
+
+				if($email_notification_order == 0 || empty($email_notification_order)){
+
+
+					$emailHandler = new Sas_Shop_Email_Handler();
+					$emailHandler->sendEmail($order->ID, __('New Order #' . $order->ID  , SAS_SHOP_NAME ), 'email-customer-new-order');
+
+				}
+
+
+
+				$page_template = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/order.php';
+				return $page_template;
+				exit;
+
+			}
+
+			if( 'POST' == $_SERVER['REQUEST_METHOD'] ){
+
+				$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+				$cart_data = $sessionHandler->sas_shop_get_data();
+				$cart_id = $sessionHandler->get_cart_id();
+
+				$cart_id_post = isset($_POST['cart_id']) ? $_POST['cart_id'] : '';
+				$create_account_check = isset($_POST['create_account_check']) ? $_POST['create_account_check']: '';
+
+				if( $cart_id === $cart_id_post ){
+
+
+					if( isset($create_account_check) && $create_account_check == 'on' ){
+
+						//Guest User
+
+						$pluginAccounts = new Sas_Shop_Accounts(SAS_SHOP_VERSION, SAS_SHOP_NAME);
+
+						$email      	= isset($_POST['email']) ? $_POST['email'] :'';
+						if(empty($email)){
+							$attributes['errors'] = __('Email is empty' , 'sas-shop' );
+						}
+						if( ! is_email( $email ) ){
+							$attributes['errors'] = __('That is not a valid email' , 'sas-shop' );
+						}
+
+						$first_name 	= isset($_POST['first_name']) ? $_POST['first_name'] : '' ;
+						if(empty($first_name)){
+							$attributes['errors'] = __('Please fill your name' , 'sas-shop' );
+						}
+						$last_name   	= isset($_POST['last_name']) ? $_POST['last_name'] : '';
+						if(empty($last_name)){
+							$attributes['errors'] = __('Please fill your surname' , 'sas-shop' );
+						}
+						$user_password 	= isset($_POST['user_password']) ? $_POST['user_password'] : '';
+						if(empty($user_password)){
+							$attributes['errors'] = __('Please enter a password' , 'sas-shop' );
+						}
+						$phone 			= isset($_POST['sas_shop_phone']) ? $_POST['sas_shop_phone'] : '';
+						if(empty($phone)){
+							$attributes['errors'] = __('Please fill your phone' , 'sas-shop' );
+						}
+						$address 		= isset($_POST['sas_shop_address']) ? $_POST['sas_shop_address'] : '';
+						if(empty($address)){
+							$attributes['errors'] = __('Please fill your address' , 'sas-shop' );
+						}
+						$country 		= isset($_POST['sas_shop_country']) ? $_POST['sas_shop_country'] : '';
+						if(empty($country)){
+							$attributes['errors'] = __('Please fill your country' , 'sas-shop' );
+						}
+						$city 			= isset($_POST['sas_shop_city']) ? $_POST['sas_shop_city'] : '';
+						if(empty($city)){
+							$attributes['errors'] = __('Please fill your city' , 'sas-shop' );
+						}
+						$zipcode 		= isset($_POST['sas_shop_zipcode']) ?  $_POST['sas_shop_zipcode']  : '';
+						if(empty($zipcode)){
+							$attributes['errors'] = __('Please fill your zip code' , 'sas-shop' );
+						}
+
+
+						if( count($attributes['errors']) > 0){
+
+							$return_url = get_the_permalink( get_option( 'sas_shop_sas-shop-checkout_page_id' ) );
+							wp_redirect( $return_url );
+							exit;
+						}
+						$first_name = sanitize_text_field( $first_name );
+						$last_name = sanitize_text_field( $last_name );
+						$user_password = sanitize_text_field( $user_password );
+
+						$phone = sanitize_text_field( $phone );
+						$address = sanitize_text_field( $address );
+						$country = sanitize_text_field($country );
+						$city = sanitize_text_field( $city );
+						$zipcode = sanitize_text_field( $zipcode );
+
+						$additional_info = sanitize_text_field($_POST['sas_shop_additional_info']);
+
+
+						$result = $pluginAccounts->sas_shop_register_user( $email, $user_password ,$first_name, $last_name );
+
+
+						if ( is_wp_error( $result ) ) {
+
+							foreach( $result->get_error_codes() as $code){
+								$attributes['errors'] = $pluginAccounts->sas_shop_get_error_message( $code );
+							}
+						} else {
+
+							$user = get_user_by('id', $result);
+
+							update_user_meta( $user->ID, 'first_name', $first_name );
+							update_user_meta( $user->ID, 'last_name', $last_name );
+
+							update_user_meta( $user->ID, 'sas_shop_phone', $phone );
+							update_user_meta( $user->ID, 'sas_shop_address', $address );
+							update_user_meta( $user->ID, 'sas_shop_country', $country );
+							update_user_meta( $user->ID, 'sas_shop_city', $city );
+							update_user_meta( $user->ID, 'sas_shop_zipcode', $zipcode );
+
+							$order_id = Sas_Shop_Order::create_order();
+
+							if( is_numeric( $order_id ) ){
+
+								$order = get_post($order_id );
+
+								update_post_meta($order_id, 'field-order-customer-id', $user->ID );
+								update_post_meta($order_id, 'field-order-customer-name', $first_name );
+								update_post_meta($order_id, 'field-order-customer-lastname', $last_name );
+								update_post_meta($order_id, 'field-order-customer-email', $email );
+								update_post_meta($order_id, 'field-order-customer-country', $country );
+								update_post_meta($order_id, 'field-order-customer-address', $address );
+								update_post_meta($order_id, 'field-order-customer-city', $city );
+								update_post_meta($order_id, 'field-order-customer-zip-code', $zipcode );
+								update_post_meta($order_id, 'field-order-customer-phone', $phone );
+								update_post_meta($order_id, 'field-order-customer-info', $additional_info );
+								update_post_meta($order_id, 'field-order-date-creation', get_the_date( 'd-m-Y' , $order_id) );
+								update_post_meta($order_id, 'field-order-time-creation', get_the_date( 'H:i:s' , $order_id) );
+								update_post_meta($order_id, 'field-order-cart-products', json_encode($cart_data[$cart_id]['cart_products']) );
+								update_post_meta($order_id, 'field-order-cart-subtotal', json_encode($cart_data[$cart_id]['cart_subtotal']) );
+								update_post_meta($order_id, 'field-order-cart-taxes', json_encode($cart_data[$cart_id]['cart_taxes']) );
+								update_post_meta($order_id, 'field-order-cart-total', json_encode($cart_data[$cart_id]['cart_total']) );
+								update_post_meta($order_id, 'field-order-shipping', $cart_data[$cart_id]['shipping_checked'] );
+								update_post_meta($order_id, 'field-order-payment-method', $_POST['sas_shop_payment_method'][0] );
+
+								update_post_meta($order_id, 'field-order-shipping-unit-price', $cart_data[$cart_id]['cart_shipping_unit_price'] );
+								update_post_meta($order_id, 'field-order-shipping-unit-tax', $cart_data[$cart_id]['cart_shipping_unit_tax'] );
+								update_post_meta($order_id, 'field-order-shipping-total-price', $cart_data[$cart_id]['cart_shipping_total_price'] );
+								update_post_meta($order_id, 'field-order-shipping-total-tax', $cart_data[$cart_id]['cart_shipping_total_tax'] );
+
+
+								//update_post_meta($order_id, 'field-order-status', 'pending_payment' );
+
+
+								if( $_POST['sas_shop_payment_method'][0] == 'bank_transfer' || $_POST['sas_shop_payment_method'][0] == 'cash_on_delivery' ){
+									update_post_meta($order_id, 'field-order-status', 'pending_payment' );
+								}
+
+
+								update_post_meta($order_id, 'field-order-confirmation', $sessionHandler->get_session_id() );
+
+
+								clean_user_cache($user->ID);
+								wp_clear_auth_cookie();
+								wp_set_current_user($user->ID);
+								wp_set_auth_cookie($user->ID, true, false);
+								update_user_caches($user);
+
+
+								$return_args = array('order' => $order_id , 'order_status' => 'order_completed', 'sas_shop_confirmation' => $sessionHandler->get_session_id() );
+								$url = get_the_permalink( get_option( 'sas_shop_sas-shop-checkout_page_id' ) );
+
+								$return_url = add_query_arg( $return_args , $url );
+								wp_redirect( $return_url );
+								exit;
+							}
+
+						}
+
+
+
+					}else{
+
+
+							$email      	= isset($_POST['email']) ? $_POST['email'] :'';
+							if(empty($email)){
+								$attributes['errors'] = __('Email is empty' , 'sas-shop' );
+							}
+							if( ! is_email( $email ) ){
+								$attributes['errors'] = __('That is not a valid email' , 'sas-shop' );
+							}
+
+							$first_name 	= isset($_POST['first_name']) ? $_POST['first_name'] : '' ;
+							if(empty($first_name)){
+								$attributes['errors'] = __('Please fill your name' , 'sas-shop' );
+							}
+							$last_name   	= isset($_POST['last_name']) ? $_POST['last_name'] : '';
+							if(empty($last_name)){
+								$attributes['errors'] = __('Please fill your surname' , 'sas-shop' );
+							}
+							$phone 			= isset($_POST['sas_shop_phone']) ? $_POST['sas_shop_phone'] : '';
+							if(empty($phone)){
+								$attributes['errors'] = __('Please fill your phone' , 'sas-shop' );
+							}
+							$address 		= isset($_POST['sas_shop_address']) ? $_POST['sas_shop_address'] : '';
+							if(empty($address)){
+								$attributes['errors'] = __('Please fill your address' , 'sas-shop' );
+							}
+							$country 		= isset($_POST['sas_shop_country']) ? $_POST['sas_shop_country'] : '';
+							if(empty($country)){
+								$attributes['errors'] = __('Please fill your country' , 'sas-shop' );
+							}
+							$city 			= isset($_POST['sas_shop_city']) ? $_POST['sas_shop_city'] : '';
+							if(empty($city)){
+								$attributes['errors'] = __('Please fill your city' , 'sas-shop' );
+							}
+							$zipcode 		= isset($_POST['sas_shop_zipcode']) ?  $_POST['sas_shop_zipcode']  : '';
+							if(empty($zipcode)){
+								$attributes['errors'] = __('Please fill your zip code' , 'sas-shop' );
+							}
+
+
+							if( count($attributes['errors']) > 0){
+
+								$return_url = get_the_permalink( get_option( 'sas_shop_sas-shop-checkout_page_id' ) );
+								wp_redirect( $return_url );
+								exit;
+							}
+
+
+							$email = sanitize_email( $email );
+							$first_name = sanitize_text_field( $first_name );
+							$last_name = sanitize_text_field( $last_name );
+							$phone = sanitize_text_field( $phone );
+							$address = sanitize_text_field( $address );
+							$country = sanitize_text_field( $country );
+							$city = sanitize_text_field( $city );
+							$zipcode = sanitize_text_field( $zipcode );
+							$additional_info = sanitize_text_field($_POST['sas_shop_additional_info']);
+
+
+							$user = get_user_by( 'email', $email );
+
+							update_user_meta( $user->ID, 'first_name', $first_name );
+							update_user_meta( $user->ID, 'last_name', $last_name );
+
+							update_user_meta( $user->ID, 'sas_shop_phone', $phone );
+							update_user_meta( $user->ID, 'sas_shop_address', $address );
+							update_user_meta( $user->ID, 'sas_shop_country', $country );
+							update_user_meta( $user->ID, 'sas_shop_city', $city );
+							update_user_meta( $user->ID, 'sas_shop_zipcode', $zipcode );
+
+
+
+							$order_id = Sas_Shop_Order::create_order();
+
+							if( is_numeric( $order_id ) ){
+
+								$order = get_post($order_id );
+
+								update_post_meta($order_id, 'field-order-customer-id', $user->ID );
+								update_post_meta($order_id, 'field-order-customer-name', $first_name );
+								update_post_meta($order_id, 'field-order-customer-lastname', $last_name );
+								update_post_meta($order_id, 'field-order-customer-email', $email );
+								update_post_meta($order_id, 'field-order-customer-country', $country );
+								update_post_meta($order_id, 'field-order-customer-address', $address );
+								update_post_meta($order_id, 'field-order-customer-city', $city );
+								update_post_meta($order_id, 'field-order-customer-zip-code', $zipcode );
+								update_post_meta($order_id, 'field-order-customer-phone', $phone );
+								update_post_meta($order_id, 'field-order-customer-info', $additional_info );
+								update_post_meta($order_id, 'field-order-date-creation', get_the_date( 'd-m-Y' , $order_id) );
+								update_post_meta($order_id, 'field-order-time-creation', get_the_date( 'H:i:s' , $order_id) );
+								update_post_meta($order_id, 'field-order-cart-products', json_encode($cart_data[$cart_id]['cart_products']) );
+								update_post_meta($order_id, 'field-order-cart-subtotal', json_encode($cart_data[$cart_id]['cart_subtotal']) );
+								update_post_meta($order_id, 'field-order-cart-taxes', json_encode($cart_data[$cart_id]['cart_taxes']) );
+								update_post_meta($order_id, 'field-order-cart-total', json_encode($cart_data[$cart_id]['cart_total']) );
+								update_post_meta($order_id, 'field-order-shipping', $cart_data[$cart_id]['shipping_checked'] );
+
+								update_post_meta($order_id, 'field-order-payment-method', $_POST['sas_shop_payment_method'][0] );
+
+								update_post_meta($order_id, 'field-order-shipping-unit-price', $cart_data[$cart_id]['cart_shipping_unit_price'] );
+								update_post_meta($order_id, 'field-order-shipping-unit-tax', $cart_data[$cart_id]['cart_shipping_unit_tax'] );
+								update_post_meta($order_id, 'field-order-shipping-total-price', $cart_data[$cart_id]['cart_shipping_total_price'] );
+								update_post_meta($order_id, 'field-order-shipping-total-tax', $cart_data[$cart_id]['cart_shipping_total_tax'] );
+
+								if( $_POST['sas_shop_payment_method'][0] == 'bank_transfer' || $_POST['sas_shop_payment_method'][0] == 'cash_on_delivery' ){
+									update_post_meta($order_id, 'field-order-status', 'pending_payment' );
+								}
+
+								update_post_meta($order_id, 'field-order-confirmation', $sessionHandler->get_session_id() );
+
+								$return_args = array('order' => $order_id , 'order_status' => 'order_completed', 'sas_shop_confirmation' => $sessionHandler->get_session_id() );
+								$url = get_the_permalink( get_option( 'sas_shop_sas-shop-checkout_page_id' ) );
+
+								$return_url = add_query_arg( $return_args , $url );
+								wp_redirect( $return_url );
+								exit;
+
+							}
+
+					}
+
+				}
+
+
+
+			}
+
 	        $page_template = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/checkout.php';
+
 	    }
 	    return $page_template;
 	}
 
+	/**
+	 * sas_shop_wrapper_order_completed_display function.
+	 *
+	 * @access public
+	 * @param array $attributes (default: array( ))
+	 * @return void
+	 */
+	public function sas_shop_wrapper_order_completed_display( $attributes = array( ) ){
+
+		global $attributes;
+
+		Sas_Shop_Core_Helpers::sas_shop_get_template( 'order/order-completed.php', $attributes );
+	}
+
+	/**
+	 * sas_shop_wrapper_checkout_form_display function.
+	 *
+	 * @access public
+	 * @param mixed $page_template
+	 * @param array $attributes (default: array())
+	 * @return void
+	 */
 	public function sas_shop_wrapper_checkout_form_display( $page_template, $attributes = array() ){
 
 		global $attributes;
-		$pluginAccounts = new Sas_Shop_Accounts($this->version, $this->plugin_name);
+		$pluginAccounts = new Sas_Shop_Accounts(SAS_SHOP_VERSION, 'sas-shop');
 
 		if ( is_user_logged_in() ) {
 
@@ -189,9 +578,7 @@ class Sas_Shop_Public {
 			}
 		}
 		Sas_Shop_Core_Helpers::sas_shop_get_template( 'checkout/checkout-form.php', $attributes );
-
 	}
-
 
 	/**
 	 * get_myaccount_template function.
@@ -229,11 +616,7 @@ class Sas_Shop_Public {
 
 		global $attributes;
 
-		//$attributes['errors'] = 'email_exists';
-
-	    if ( is_page( get_option( 'sas_shop_sas-shop-signup_page_id' ) ) || is_page( 'sas-shop-signup' ) ) {
-
-
+	    if( is_page( get_option( 'sas_shop_sas-shop-signup_page_id' ) ) || is_page( 'sas-shop-signup' ) ) {
 
 			if(is_user_logged_in()){
 				$my_account = get_the_permalink( get_option( 'sas_shop_sas-shop-myaccount_page_id' ) );
@@ -325,33 +708,17 @@ class Sas_Shop_Public {
 					$redirect_url = get_the_permalink( get_option( 'sas_shop_sas-shop-signup_page_id' ) );
 
 					$pluginAccounts->auto_login_user($result, $redirect_url );
-					/*
-					$user = get_user_by('id', $result);
-					clean_user_cache($user->ID);
-					wp_clear_auth_cookie();
-					wp_set_current_user($user->ID);
-					wp_set_auth_cookie($user->ID, true, false);
-					update_user_caches($user);
 
-					$redirect_url = get_the_permalink( get_option( 'sas_shop_sas-shop-signup_page_id' ) );
-					wp_safe_redirect( $redirect_url );
-					exit;
-					*/
 					}
 				}
-
-
-
-
-
 		}
 
-		if(isset($errors)){
+			if(isset($errors)){
 			$attributes['errors'] = $errors; //
 
 		}
 
-		$page_template = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/accounts/sas-shop-sign-up.php';
+			$page_template = plugin_dir_path( dirname( __FILE__ ) ) . 'templates/accounts/sas-shop-sign-up.php';
 
 	    }
 	    return $page_template;
@@ -374,7 +741,6 @@ class Sas_Shop_Public {
 
 	}
 
-
 	/**
 	 * sas_shop_wrapper_mini_signup_form function.
 	 *
@@ -390,6 +756,7 @@ class Sas_Shop_Public {
 
 		Sas_Shop_Core_Helpers::sas_shop_get_template( 'accounts/sas-shop-sign-up-mini-form.php', $attributes );
 	}
+
 	/**
 	 * get_login_template function.
 	 *
@@ -577,9 +944,16 @@ class Sas_Shop_Public {
 				}
 			}
 		}
-
-
 		Sas_Shop_Core_Helpers::sas_shop_get_template( 'accounts/sas-shop-myaccount-form.php', $attributes );
+
+	}
+
+
+	public function sas_shop_wrapper_myaccount_orders_template( $page_template, $orders = array() ){
+
+		global $orders;
+
+		Sas_Shop_Core_Helpers::sas_shop_get_template( 'accounts/sas-shop-myaccount-orders.php', $orders );
 
 	}
 
@@ -670,33 +1044,6 @@ class Sas_Shop_Public {
 	 */
 	public static function sas_shop_wrapper_cart_form_display(){
 
-
-
-
-
-		$array = array('cart' => array(
-										'cart_products' => array(
-																 'product_id' => '1')
-									    )
-					   );
-		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
-		$sessionHandler->saveData(json_encode( $array) );
-
-		print_r( $sessionHandler->getData() );
-
-		//$arr = json_decode(json_encode($sessionHandler->getData()), True);
-
-		//print_r($arr);
-
-		/***
-foreach($sessionHandler->getData() as $key => $value)
-{
-    $stdArray[$key] = (array) $value;
-}
-
-print_r( $stdArray );
-***/
-
 		Sas_Shop_Core_Helpers::sas_shop_get_template( 'cart/cart-form.php' );
 	}
 
@@ -709,8 +1056,11 @@ print_r( $stdArray );
 	 */
 	public function sas_shop_add_to_cart_single(){
 
+		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+		$cart_data = $sessionHandler->sas_shop_get_data();
+		$cart_id = $sessionHandler->get_cart_id();
+
 		$new_product = array();
-		//add product to session or create new one
 		if( isset($_POST["type"]) && $_POST["type"] == 'add' && isset($_POST["product_qty"]) && $_POST["product_qty"] > 0){
 
 			foreach($_POST as $key => $value){
@@ -719,15 +1069,7 @@ print_r( $stdArray );
 				unset($new_product['return_url']);
 				unset($new_product['action']);
 
-				//print_r($_POST);
-				//echo $key . ' - ' . $value;
-
-
-
 				$new_product[$key] = filter_var($value, FILTER_SANITIZE_STRING);
-
-				//echo $new_product[$key];
-
 
 				$product_id = isset($new_product['product_id']) ? $new_product['product_id'] : NULL;
 				if($product_id != NULL){
@@ -736,18 +1078,18 @@ print_r( $stdArray );
 
 				if( isset( $post->ID ) ){
 
-
 		        $new_product["product_name"] = $post->post_title;
 		        $new_product["product_price"] = get_post_meta($post->ID, 'field-product-price', true);
-				if(isset($_SESSION["cart_products"])){  //if session var already exist
-					if(isset($_SESSION["cart_products"][$new_product['product_id']])) //check item exist in products array
-					{
-						unset($_SESSION["cart_products"][$new_product['product_id']]); //unset old array item
-					}
-				}
-				$_SESSION["cart_products"][$new_product['product_id']] = $new_product; //update or create product session with new item
 
-		      }
+					if(isset($cart_data[$cart_id]["cart_products"])){  //if session var already exist
+						if(isset($cart_data[$cart_id]["cart_products"][$new_product['product_id']])){
+							unset($cart_data[$cart_id]["cart_products"][$new_product['product_id']]); //unset old array item
+							$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
+						}
+					}
+					$cart_data[$cart_id]["cart_products"][$new_product['product_id']] = $new_product; //update or create product session with new item
+					$sessionHandler->sas_shop_save_data( json_encode( $cart_data ) );
+				}
 			}
 
 		}
@@ -758,9 +1100,9 @@ print_r( $stdArray );
 			if(isset($_POST["product_qty"]) && is_array($_POST["product_qty"])){
 				foreach($_POST["product_qty"] as $key => $value){
 					if(is_numeric($value) && $value > 0 ){
-						$_SESSION["cart_products"][$key]["product_qty"] = $value;
 
-
+						$cart_data[$cart_id]["cart_products"][$key]["product_qty"] = $value;
+						$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 
 					}
 				}
@@ -769,7 +1111,8 @@ print_r( $stdArray );
 			if(isset($_POST["remove_code"]) && is_array($_POST["remove_code"])){
 				foreach($_POST["remove_code"] as $key){
 
-					unset($_SESSION["cart_products"][$key]);
+					unset($cart_data[$cart_id]["cart_products"][$key]);
+					$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 				}
 			}
 
@@ -781,7 +1124,6 @@ print_r( $stdArray );
 
 	}
 
-
 	/**
 	 * sas_shop_add_to_cart_single_product_process function.
 	 *
@@ -790,22 +1132,35 @@ print_r( $stdArray );
 	 */
 	public function sas_shop_add_to_cart_single_product_process(){
 
+		$cart_page = get_option( 'sas_shop_sas-shop-cart_page_id' );
+		$checkout_page = get_option( 'sas_shop_sas-shop-checkout_page_id' );
+		//$hide_mini_cart = get_option( 'widget_sas-shop-cart_hide_mini_cart' , true);
+
+
+		if(! is_page($cart_page) && ! is_page($checkout_page) ):
+
+
+		$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+		$cart_data = $sessionHandler->sas_shop_get_data();
+		$cart_id = $sessionHandler->get_cart_id();
 
 		$cart_url = get_permalink( get_option( 'sas_shop_sas-shop-cart_page_id' ) );
 
-		if(isset($_SESSION["cart_products"]) && count($_SESSION["cart_products"]) > 0) {
+		if(isset($cart_data[$cart_id]["cart_products"]) && count($cart_data[$cart_id]["cart_products"]) > 0) {
+
+			$currencySymbol = Sas_Shop_Settings_Definition::get_sas_shop_currency_symbol( Sas_Shop_Option::get_option( 'sas_shop_currency' ) );
 
 			$html = '';
 			$html .= '<div class="cart-view-table-front" id="view-cart">';
-			$html .= '<h3>' . __( 'Shopping Cart', $this->plugin_name ) . '</h3>';
-			$html .= '<form method="post" action="' . esc_url( admin_url('admin-post.php') ) . '">';
-			$html .= '<input type="hidden" name="action" value="add_to_cart" />';
+			//$html .= '<h3>' . __( 'Shopping Cart', $this->plugin_name ) . '</h3>';
+			//$html .= '<form method="post" action="' . esc_url( admin_url('admin-post.php') ) . '">';
+			//$html .= '<input type="hidden" name="action" value="add_to_cart" />';
 			$html .= '<table width="100%" cellpadding="2" cellspacing="0">';
 			$html .= '<tbody>';
 
 			$total = 0;
 			$b = 0;
-			foreach ($_SESSION["cart_products"] as $cart_itm){
+			foreach ($cart_data[$cart_id]["cart_products"] as $cart_itm){
 
 				$product_name = $cart_itm["product_name"];
 				$product_qty = $cart_itm["product_qty"];
@@ -814,63 +1169,57 @@ print_r( $stdArray );
 				$bg_color = ($b++%2==1) ? 'odd' : 'even';
 
 				$html .= '<tr class="'.$bg_color.'">';
-				$html .= '<td>' . __('Qty', $this->plugin_name ) . '</td><td><input type="number" size="2" min="1" name="product_qty['.$product_id.']" value="'.$product_qty.'" /></td>';
-				$html .= '<td>'.$product_name.'</td>';
-				$html .= '<td><input type="checkbox" name="remove_code[]" value="'.$product_id.'" /> Remove</td>';
+				//$html .= '<td>' . __('Qty', $this->plugin_name ) . '</td><td><input type="number" size="2" min="1" name="product_qty['.$product_id.']" value="'.$product_qty.'" /></td>';
+				//$html .= '<td>' . __('Qty', $this->plugin_name ) . '</td>';
+				$html .= '<td>'.$product_qty.' x </td>';
+				$html .= '<td colspan="3">'.$product_name.'</td>';
+				//$html .= '<td><input type="checkbox" name="remove_code[]" value="'.$product_id.'" /> Remove</td>';
 				$html .= '</tr>';
 				$subtotal = ($product_price * $product_qty);
 				$total = ($total + $subtotal);
 
-				$_SESSION['cart_subtotal'] = $subtotal;
-				$_SESSION['cart_total'] = $total;
+
+
+				$cart_data[$cart_id]['cart_subtotal'] = $subtotal;
+				$cart_data[$cart_id]['cart_total'] = $total;
+				$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 			}
 			$html .= '<tr>';
 			$html .= '<td colspan="2">';
-			$html .= '<button type="submit">' . __( 'Update', $this->plugin_name ) . '</button>';
-			$html .= '<a href="' . $cart_url . '">Checkout</a>';
+			//$html .= '<button type="submit">' . __( 'Update', $this->plugin_name ) . '</button>';
+			$html .= '<a href="' . $cart_url . '" style="font-size:12px !important;">Checkout</a>';
 			$html .= '</td>';
-			$html .= '<td>';
-			$html .= __('Subtotal: ', $this->plugin_name ) . $subtotal;
-			$html .= '</td>';
-			$html .= '<td>';
-			$html .= __('Total: ', $this->plugin_name ) . $total;
+			//$html .= '<td>';
+			//$html .= __('Subtotal: ', $this->plugin_name ) . $subtotal;
+			//$html .= '</td>';
+			$html .= '<td colspan="2">';
+			$html .= __('Total: ', $this->plugin_name ) . $total . ' ' . $currencySymbol;
 			$html .= '</td>';
 			$html .= '</tr>';
 			$html .= '</tbody>';
 			$html .= '</table>';
 
 			$current_url = urlencode($url="http://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
-			$html .= '<input type="hidden" name="return_url" value="' . $current_url . '" />';
-			$html .= '</form>';
+			//$html .= '<input type="hidden" name="return_url" value="' . $current_url . '" />';
+			//$html .= '</form>';
 			$html .= '</div>';
 
-			//echo $html;
+			return $html;
 
 
 
 		}else{
 
-			unset($_SESSION['cart_products']);
-			unset($_SESSION['cart_subtotal']);
-			unset($_SESSION['cart_total']);
-			unset($_SESSION['total_cart_qty']);
-			unset($_SESSION['cart_taxes']);
-			unset($_SESSION['shipping_checked']);
-
 			$html = '';
 			$html .= '<div class="cart-view-table-front" id="view-cart">';
-			$html .= '<h3>' . __( 'Shopping Cart', $this->plugin_name ) . '</h3>';
+			//$html .= '<h3>' . __( 'Shopping Cart', $this->plugin_name ) . '</h3>';
 			$html .= '<p>' . __( 'Your cart is empty', $this->plugin_name ) . '</p>';
 			$html .= '</div>';
 
-			//echo $html;
+			return $html;
 
 		}
-
-		//echo '<pre> SESSION: class-sas-shop-public.php';
-		//print_r($_SESSION);
-		//echo '</pre>';
-
+		endif;
 	}
 
 	/**
@@ -893,15 +1242,21 @@ print_r( $stdArray );
 	public function sas_shop_add_to_cart_single_btn(){
 
 		Sas_Shop_Core_Helpers::sas_shop_get_template( 'cart/add-to-cart-single.php' );
-
 	}
 
-
+	/**
+	 * sas_shop_update_cart_data function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_update_cart_data(){
 
-
-
 		if( isset($_POST['data']) ){
+
+			$sessionHandler = Sas_Shop_Session_Handler::getInstance();
+			$cart_data = $sessionHandler->sas_shop_get_data();
+			$cart_id = $sessionHandler->get_cart_id();
 
 			parse_str($_POST['data'], $data);
 
@@ -911,27 +1266,43 @@ print_r( $stdArray );
 				if($shipping == 'shipping_free_name'){
 					$shipping_price = Sas_Shop_Option::get_option( 'shipping_free_name' );
 					$shipping_tax   = floatval('0.00');
-					$_SESSION['shipping_checked'] = 'free_shipping';
+
+					$cart_data[$cart_id]['shipping_checked'] = 'free_shipping';
+					$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 				}
 				if($shipping == 'shipping_flat_name'){
 					$shipping_price = Sas_Shop_Option::get_option( 'shipping_flat_price' );
 					$shipping_tax   = Sas_Shop_Option::get_option( 'shipping_flat_tax' );
-					$_SESSION['shipping_checked'] = 'flat_shipping';
+
+					$cart_data[$cart_id]['shipping_checked'] = 'flat_shipping';
+					$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 				}
 				$grand_total = $data['grand_total'];
 				$taxes_total = $data['taxes_total'];
-				$shipping_tax_unit = 0;
+				$shipping_price_per_qty = 0;
 				$shipping_taxes = 0;
 				$calculated_tax = round( ( $shipping_price * ( floatval($shipping_tax) / 100 ) ) , 2 );
-				$total_car_qty = $_SESSION['total_cart_qty'];
-				$shipping_taxes =   $calculated_tax * $total_car_qty;
-				$shipping_tax_unit = $shipping_price  * $total_car_qty;
-				$total_shipping_with_tax = $shipping_taxes + $shipping_tax_unit;
+
+				$total_cart_qty = $cart_data[$cart_id]['total_cart_qty'];
+				$shipping_taxes =   $calculated_tax * $total_cart_qty;
+				$shipping_price_per_qty = $shipping_price  * $total_cart_qty;
+
+
+				$total_shipping_with_tax = $shipping_taxes + $shipping_price_per_qty;
 				$taxes_total = floatval( $taxes_total ) + floatval( $shipping_taxes );
 				$grand_total = $grand_total + $total_shipping_with_tax;
 				$dataResult = array( 'taxes_total' => $taxes_total, 'grand_total' => $grand_total );
-				$_SESSION['cart_taxes'] = $taxes_total;
-				$_SESSION['cart_total'] = $grand_total;
+
+
+				$cart_data[$cart_id]['cart_shipping_unit_price'] = $shipping_price;
+				$cart_data[$cart_id]['cart_shipping_unit_tax'] = $shipping_tax;
+
+				$cart_data[$cart_id]['cart_shipping_total_price'] = $shipping_price_per_qty;
+				$cart_data[$cart_id]['cart_shipping_total_tax'] = $shipping_taxes;
+
+				$cart_data[$cart_id]['cart_taxes'] = $taxes_total;
+				$cart_data[$cart_id]['cart_total'] = $grand_total;
+				$sessionHandler->sas_shop_save_data(json_encode( $cart_data ) );
 
 				echo wp_send_json($dataResult);
 			}else{
@@ -940,24 +1311,6 @@ print_r( $stdArray );
 
 		}
 	}
-
-
-
-	/**
-	 * sas_shop_shop_page_shortcode function.
-	 *
-	 * @access public
-	 * @return void
-	 */
-	public function sas_shop_shop_page_shortcode(){}
-
-	/**
-	 * sas_shop_cart_page_shortcode function.
-	 *
-	 * @access public
-	 * @return void
-	 */
-	public function sas_shop_cart_page_shortcode(){}
 
 	/**
 	 * sas_shop_register_sidebar function.
@@ -968,7 +1321,7 @@ print_r( $stdArray );
 	public function sas_shop_register_sidebar() {
 	    register_sidebar( array(
 	        'name' => __( 'Sas Shop Sidebar', $this->plugin_name),
-	        'id' => 'sas-shop-sidebar-1',
+	        'id' => 'sas-shop-sidebar',
 	        'description' => __( 'Widgets in this area will be shown on product single page.', $this->plugin_name ),
 	        'before_widget' => '<li id="%1$s" class="widget %2$s">',
 			'after_widget'  => '</li>',

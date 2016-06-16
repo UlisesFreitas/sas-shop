@@ -6,9 +6,20 @@
  *
  */
 
-?>
 
-<!--div class="row"-->
+
+
+
+
+
+
+$i = 0;
+?>
+<?php while ( have_posts() ) : the_post(); ?>
+<?php if($i== 0 || $i % 4 == 0): ?>
+<div class="row" id="sas-shop-four-cols">
+<?php endif; ?>
+
 	<div class="sas-shop-col-3 sas-shop-col-m-12">
 		<a href="<?php echo esc_url( get_permalink( get_the_ID() ) ); ?>">
 			<?php the_post_thumbnail( 'sas-shop-product-thumbnail' ); ?>
@@ -28,4 +39,8 @@
 		?>
 		<?php do_action( 'sas_shop_add_to_cart_front_btn_display' ); ?>
 	</div>
-<!--/div-->
+<?php $i++; ?>
+<?php if( $i % 4 == 0 ): ?>
+</div>
+<?php endif; ?>
+<?php endwhile; ?>

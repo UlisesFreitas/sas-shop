@@ -111,7 +111,6 @@ class Sas_Shop {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-sas-shop-i18n.php';
 
-
 		/**
 		 * The class responsible for defining helper functions of the plugin core
 		 * side of the site.
@@ -125,8 +124,6 @@ class Sas_Shop {
 		 */
 		require_once plugin_dir_path( dirname(__FILE__) ) . 'includes/class-sas-shop-sessions.php';
 
-
-
 		/**
 		 * The class responsible for defining Accounts functions of the plugin core
 		 * side of the site.
@@ -134,9 +131,20 @@ class Sas_Shop {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-sas-shop-accounts.php';
 
 		/**
+		 * The class responsible for defining Accounts functions of the plugin core
+		 * side of the site.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-sas-shop-email.php';
+
+		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-sas-shop-admin.php';
+
+		/**
+		 * The class responsible for defining all actions that occur in the admin area.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-sas-shop-orders.php';
 
 
 		/**
@@ -179,8 +187,6 @@ class Sas_Shop {
 
 		//countries
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/classes/class-sas-shop-countries.php';
-
-
 
 
 
@@ -244,7 +250,9 @@ class Sas_Shop {
 
 		$this->loader->add_action( 'init', $plugin_admin, 'sas_product_taxonomy_type' );
 
-
+		$this->loader->add_filter('post_row_actions', $plugin_admin, 'remove_quick_edit',10,2);
+		$this->loader->add_filter( 'manage_sas_shop_orders_posts_columns', $plugin_admin, 'sas_shop_set_custom_edit_sas_shop_orders_columns' );
+		$this->loader->add_action( 'manage_sas_shop_orders_posts_custom_column' , $plugin_admin, 'sas_shop_custom_sas_shop_orders_column', 10, 2 );
 		/*
 		 *	Load the meta box class and create its hooks:
 		 *  - This is defined on Sas_Shop_Admin
@@ -254,12 +262,8 @@ class Sas_Shop {
 				 - admin/class-sas-product-metabox.php
 		 */
 		$this->loader->add_action( 'init', $plugin_admin, 'sas_product_metaboxes' );
-
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'sas_shop_order_metabox_sku' );
-
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'sas_shop_order_products_metabox' );
-
-
 		$this->loader->add_action( 'init', $plugin_admin, 'sas_order_metaboxes' );
 
 		/**
@@ -344,8 +348,7 @@ class Sas_Shop {
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
-		//$this->loader->add_filter('init', $plugin_public, 'sas_shop_add_thumbnail_size');
-		//$this->loader->add_filter('image_size_names_choose', $plugin_public, 'sas_shop_image_sizes');
+
 
 		$this->loader->add_action('init', $plugin_accounts, 'sas_shop_prevent_direct_access_to_login', 999 );
 		//@TODO UNCOMMENT LATER
@@ -376,6 +379,8 @@ class Sas_Shop {
 		$this->loader->add_filter( 'sas_shop_wrapper_cart_form', $plugin_public, 'sas_shop_wrapper_cart_form_display' );
 
 		$this->loader->add_filter( 'sas_shop_wrapper_myaccount_form', $plugin_public,'sas_shop_wrapper_myaccount_form_template', 10, 2 );
+		$this->loader->add_filter( 'sas_shop_wrapper_myaccount_orders', $plugin_public,'sas_shop_wrapper_myaccount_orders_template', 10, 2 );
+
 
 		$this->loader->add_filter( 'sas_shop_wrapper_signup_form', $plugin_public, 'sas_shop_wrapper_signup_form_display', 10, 2 );
 		$this->loader->add_filter( 'sas_shop_wrapper_mini_signup_form', $plugin_public,'sas_shop_wrapper_mini_signup_form_display', 99, 2);
@@ -385,6 +390,8 @@ class Sas_Shop {
 
 		$this->loader->add_filter( 'sas_shop_wrapper_single_content', $plugin_public, 'sas_shop_wrapper_single_content_display', 10, 2 );
 		$this->loader->add_filter( 'sas_shop_wrapper_checkout_form', $plugin_public, 'sas_shop_wrapper_checkout_form_display', 10, 2 );
+
+		$this->loader->add_filter( 'sas_shop_wrapper_order_completed', $plugin_public, 'sas_shop_wrapper_order_completed_display', 10, 1 );
 
 		/**
 		 * All our pages overwritten
@@ -437,8 +444,10 @@ class Sas_Shop {
 
 
 
-		//$this->loader->add_action( 'widgets_init', $plugin_public, 'sas_shop_register_sidebar' );
+		//$this->loader->add_action( 'widgets_init', $plugin_public, 'sas_shop_register_sidebar', 10 );
+		//$this->loader->add_filter( 'widget_text', $plugin_public, 'do_shortcode', 11);
 
+		$this->loader->add_shortcode('sas-shop-cart-display', $plugin_public, 'sas_shop_add_to_cart_single_product_process', 10 );
 
 		/**
 		 *  The shopping cart stuff
@@ -450,7 +459,9 @@ class Sas_Shop {
 		$this->loader->add_action( 'admin_post_nopriv_add_to_cart', $plugin_public, 'sas_shop_add_to_cart_single' );
 		$this->loader->add_action( 'admin_post_update_cart', $plugin_public, 'sas_shop_add_to_cart_single' );
 		$this->loader->add_action( 'admin_post_nopriv_update_cart', $plugin_public, 'sas_shop_add_to_cart_single' );
-		$this->loader->add_action( 'sas_shop_add_to_cart_single_product', $plugin_public, 'sas_shop_add_to_cart_single_product_process', 10, 3 );
+
+		//$this->loader->add_action( 'sas_shop_add_to_cart_single_product', $plugin_public, 'sas_shop_add_to_cart_single_product_process', 10, 3 );
+
 		$this->loader->add_filter( 'sas_shop_add_to_cart_front_btn_display', $plugin_public, 'sas_shop_add_to_cart_front_btn' );
 		$this->loader->add_filter( 'sas_shop_add_to_cart_single_btn_display', $plugin_public, 'sas_shop_add_to_cart_single_btn' );
 
@@ -461,7 +472,7 @@ class Sas_Shop {
 
 
 		//UNCOMMENT FOR ENABLE SHORTCODES
-		//$this->loader->add_shortcode('sas-shop-cart-display', $plugin_public, 'sas_shop_cart_page_shortcode');
+
 		//$this->loader->add_shortcode('sas-shop-shop-display', $plugin_public, 'sas_shop_shop_page_shortcode');
 
 

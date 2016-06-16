@@ -35,5 +35,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	?>
 	<?php do_action( 'sas_shop_wrapper_end' ); ?>
 
+
 <?php get_sidebar(); ?>
 <?php get_footer( 'Shop' ); ?>

@@ -1071,3 +1071,10 @@ p.wrap-field {
         width: 32%
     }
 }
+/***
+	Sas Shop Orders Product List Metabox
+	****/
+.sas-shop-order-table-meta  {border-collapse:collapse;border-spacing:0;border-color:#ccc;border:none;margin:0px auto;width:100%;}
+.sas-shop-order-table-meta td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;}
+.sas-shop-order-table-meta th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#f0f0f0; text-align: justify;}
+@media screen and (max-width: 767px) {.sas-shop-order-table-meta {width: auto !important;}.sas-shop-order-table-meta col {width: auto !important;}.sas-shop-order-table-meta-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;margin: auto 0px;}}

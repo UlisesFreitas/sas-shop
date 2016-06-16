@@ -109,6 +109,13 @@
 			 *
 			 */
 
+			var sas_shop_bank_transfer_selected = $('#sas_shop_bank_transfer_selected').prop('checked');
+			var sas_shop_cod_selected = $('#sas_shop_cod_selected').prop('checked');
+			if(!sas_shop_bank_transfer_selected && !sas_shop_cod_selected ){
+
+				$('#sas_shop_bank_transfer_selected').prop('checked', true);
+			}
+
 			 $('input[name="sas_shop_payment_method[]"]').change(function (evt){
 
 			 	if($('#sas_shop_bank_transfer_selected').is(':checked')){
@@ -126,6 +133,7 @@
 			 }).change();
 
 	});
+
 
 
 })( jQuery );

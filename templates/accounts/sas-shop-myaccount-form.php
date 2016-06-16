@@ -13,15 +13,12 @@
 	$sas_shop_zipcode = isset($attributes['usermeta']['sas_shop_zipcode']) ? $attributes['usermeta']['sas_shop_zipcode'] : '';
 	$errors           = isset($attributes['errors']) ? $attributes['errors'] : array();
 ?>
+
+<div class="sas-shop-col-12 sas-shop-col-m-12">
+<h2><?php echo __('My Details', 'sas-shop'); ?></h2>
 <div id="register-form" class="widecolumn">
-	<?php
 
-		//if(isset($_POST['action']) && $_POST['action'] == 'sas_shop_update_account'){
 
-			//do_action( 'sas_shop_update_account_user');
-			//exit;
-		//}
-	?>
 	<?php if ( count( $attributes['errors'] ) > 0 ) : ?>
 		<?php foreach ( $attributes['errors'] as $error ) : ?>
 			<p>
@@ -37,7 +34,7 @@
 		<?php wp_nonce_field('update-profile_' . $attributes['userdata']->ID) ?>
 		<input type="hidden" name="from" value="profile">
 		<input type="hidden" name="checkuser_id" value="<?php echo $attributes['userdata']->ID; ?>" />
-
+		<div class="sas-shop-col-6">
 		<p class="form-row">
 
 			<input type="text" name="email" readonly="readonly" id="email" placeholder="<?php _e( '* Email', 'sas-shop' ); ?>" value="<?php echo $attributes['userdata']->user_email; ?>">
@@ -57,7 +54,8 @@
 
 			<input type="text" name="sas_shop_phone" id="sas_shop_phone" placeholder="<?php _e( 'Phone', 'sas-shop' ); ?>"  value="<?php echo $sas_shop_phone; ?>">
 		</p>
-
+		</div>
+		<div class="sas-shop-col-6">
 		<p class="form-row">
 
 			<input type="text" name="sas_shop_address" id="sas_shop_address" placeholder="<?php _e( 'Address', 'sas-shop' ); ?>" value="<?php echo $sas_shop_address; ?>">
@@ -76,11 +74,12 @@
 			<input type="text" name="sas_shop_zipcode" id="sas_shop_zipcode" placeholder="<?php _e( 'Zip code', 'sas-shop' ); ?>" value="<?php echo $sas_shop_zipcode; ?>">
 		</p>
 
-
+		</div>
 		<p class="submit">
 			<input type="hidden" name="action" value="sas_shop_update_account" />
 			<input type="hidden" name="user_id" id="user_id" value="<?php echo $attributes['userdata']->ID;?>">
 			<input type="submit" name="submit" class="button" value="<?php _e( 'Update', 'sas-shop' ); ?>"/>
 		</p>
 	</form>
+</div>
 </div>

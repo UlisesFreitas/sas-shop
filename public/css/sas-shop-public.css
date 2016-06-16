@@ -92,11 +92,11 @@ input[name=sas-product-tab] {display: none;}
 .sas-shop-to-right{ float: right; }
 .sas-shop-to-center{ margin: 0 auto; text-align: center;}
 
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
-.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
-.tg .sas-shop-table-2{vertical-align:top}
-@media screen and (max-width: 767px) {.tg {width: auto !important;}.tg col {width: auto !important;}.tg-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;}}
+.sas-shop-tab  {border-collapse:collapse;border-spacing:0;}
+.sas-shop-tab td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.sas-shop-tab th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.sas-shop-tab .sas-shop-table-2{vertical-align:top}
+@media screen and (max-width: 767px) {.sas-shop-tab {width: auto !important;}.sas-shop-tab col {width: auto !important;}.sas-shop-tab-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;}}
 
 .sas-shop-payments {
     background: #f4f4f4;
@@ -106,4 +106,10 @@ input[name=sas-product-tab] {display: none;}
 }
 .sas-shop-payment-colored-block{
 	display: none;
+}
+/***** Front End Four Columns Shop ***/
+#sas-shop-four-cols{
+
+	float: left;
+	width: 100%;
 }

@@ -226,6 +226,48 @@ class Sas_Shop_Admin {
 	}
 
 	/**
+	 * SasRoles function.
+	 *
+	 * @access public
+	 * @static
+	 * @return void
+	 */
+	public static function SasRoles(){
+
+
+		$result = add_role( 'sas_shop_manager', __('Sas Shop Manager' ),
+
+		array(
+
+		'read' => true, // true allows this capability
+		'edit_posts' => true, // Allows user to edit their own posts
+		'edit_pages' => true, // Allows user to edit pages
+		'edit_others_posts' => true, // Allows user to edit others posts not just their own
+		'create_posts' => true, // Allows user to create new posts
+		'manage_categories' => true, // Allows user to manage post categories
+		'publish_posts' => true, // Allows the user to publish, otherwise posts stays in draft mode
+		'edit_themes' => true, // false denies this capability. User can’t edit your theme
+		'install_plugins' => true, // User cant add new plugins
+		'update_plugin' => true, // User can’t update any plugins
+		'update_core' => true // user cant perform core updates
+
+		)
+
+		);
+
+		//Get Admins
+		//$super_admins = get_super_admins();
+		$admins = get_users(array('role' => 'administrator'));
+			foreach ($admins as $admin) {
+
+			$admin->add_role( 'sas_shop_manager' );
+
+		}
+
+
+	}
+
+	/**
 	 * SASProduct function.
 	 *
 	 * @access public
@@ -233,6 +275,7 @@ class Sas_Shop_Admin {
 	 * @return void
 	 * @since    1.0.0
 	 */
+
 	public static function SASProduct() {
 
 		if ( post_type_exists('sas_product') ) {
@@ -304,7 +347,7 @@ class Sas_Shop_Admin {
 			'label'                 => __( 'Product', 'sas-shop' ),
 			'description'           => __( 'Product information pages.', 'sas-shop' ),
 			'labels'                => $labels,
-			'supports'              => array( 'title', 'editor', 'thumbnail', ),
+			'supports'              => array( 'title', 'editor', 'thumbnail', 'comments', ),
 			'taxonomies'            => array( 'sas_product_category', 'sas_product_tag' ),
 			'hierarchical'          => false,
 			'public'                => true,
@@ -399,25 +442,191 @@ class Sas_Shop_Admin {
 		flush_rewrite_rules();
 	}
 
+	function remove_quick_edit( $actions , $post ) {
 
+		if( $post->post_type == 'sas_shop_orders' ){
+			unset( $actions['edit'] );
+			unset( $actions['view'] );
+			unset( $actions['trash'] );
+			unset( $actions['inline hide-if-no-js'] );
+		}
+
+		return $actions;
+	}
+
+
+	public function sas_shop_set_custom_edit_sas_shop_orders_columns($columns) {
+
+		unset( $columns['title'] );
+	    unset( $columns['date'] );
+
+	    $columns['sas_shop_order_sku'] = __( 'SKU', $this->plugin_name );
+
+		$columns['sas_shop_order_user'] = __( 'Customer Info', $this->plugin_name );
+
+	    $columns['sas_shop_order_shipping'] = __('Shipping to', $this->plugin_name );
+
+		$columns['sas_shop_order_additional_info'] = __('Additional info', $this->plugin_name );
+
+
+		$columns['sas_shop_order_date'] = __('Date', $this->plugin_name );
+
+		$columns['sas_shop_order_total'] = __('Order Total', $this->plugin_name );
+
+		$columns['sas_shop_order_status'] = __('Order Status', $this->plugin_name );
+
+	    //$columns['gravitation_portfolios_website'] = __( 'Website', $this->plugin_name );
+	    //$columns['gravitation_portfolios_shortcode'] = __( 'Shortcode', $this->plugin_name );
+	    //$columns['date'] = __( 'Date',$this->plugin_name );
+
+	    return $columns;
+	}
+
+
+	public function sas_shop_custom_sas_shop_orders_column( $column, $post_id ) {
+	    switch ( $column ) {
+
+
+	        case 'sas_shop_order_sku':
+	        	$sas_shop_order_sku = get_the_title(get_the_ID());
+
+
+	         	echo '<a class="button tips view" href="' . admin_url( 'post.php?post=' . get_the_ID() . '&amp;action=edit') . '">' . $sas_shop_order_sku . ' </a>';
+			 	//http://unitedshop/?page_id=89&order=124&order_status=order_completed&sas_shop_confirmation=f528764d624db129b32c21fbca0cb8d6
+			 	$checkout_url = get_option( 'sas_shop_sas-shop-checkout_page_id' );
+			 	$checkout_url = get_the_permalink( $checkout_url );
+
+
+
+
+	        break;
+
+	        case 'sas_shop_order_shipping':
+
+	        	$user_name = get_post_meta(get_the_ID(), 'field-order-customer-name' , true);
+	        	$user_lastname = get_post_meta(get_the_ID(), 'field-order-customer-lastname' , true);
+
+	        	$user_address = get_post_meta(get_the_ID(), 'field-order-customer-address' , true);
+	        	$user_city = get_post_meta(get_the_ID(), 'field-order-customer-city' , true);
+	        	$user_country = get_post_meta(get_the_ID(), 'field-order-customer-country' , true);
+	        	$user_zipcode = get_post_meta(get_the_ID(), 'field-order-customer-zip-code' , true);
+	        	$user_phone = get_post_meta(get_the_ID(), 'field-order-customer-phone' , true);
+	        	$shipping_method = get_post_meta(get_the_ID(), 'field-order-shipping' , true);
+
+	        	echo '<p>' . $user_name . ' '. $user_lastname . '<br />';
+	        	echo $user_address . ' - ' . $user_zipcode . '<br />';
+	        	echo $user_city . ' - ' . $user_country . '<br />';
+	        	echo $user_phone . '</p>';
+				echo '<small style="color:#ccc;">' . Sas_Shop_Core_Helpers::sas_shop_shipping_names($shipping_method) . '</small>';
+
+	        break;
+
+	        case 'sas_shop_order_user' :
+		        $user_name = get_post_meta(get_the_ID(), 'field-order-customer-name' , true);
+		        $user_lastname = get_post_meta(get_the_ID(), 'field-order-customer-lastname' , true);
+	        	$user_email = get_post_meta(get_the_ID(), 'field-order-customer-email' , true);
+	        	echo '<p>' . $user_name. '  ' . $user_lastname . '</p>';
+	        	echo '<small>' . $user_email . '</small>';
+	        break;
+
+			case 'sas_shop_order_additional_info' :
+		        $additional_info = get_post_meta(get_the_ID(), 'field-order-customer-info' , true);
+
+	        	echo '<p>' . $additional_info . '</p>';
+
+	        break;
+
+	        case 'sas_shop_order_date' :
+		        $date = get_post_meta(get_the_ID(), 'field-order-date-creation' , true);
+		        $time = get_post_meta(get_the_ID(), 'field-order-time-creation' , true);
+
+	        	echo '<p>' . $date. '</p>';
+	        	echo '<p>' . $time. '</p>';
+
+	        break;
+
+	        case 'sas_shop_order_total' :
+		        $total = get_post_meta(get_the_ID(), 'field-order-cart-total' , true);
+				$currencySymbol = Sas_Shop_Settings_Definition::get_sas_shop_currency_symbol( Sas_Shop_Option::get_option( 'sas_shop_currency' ) );
+	        	echo '<strong>' . $total . ' ' .$currencySymbol . '</strong>';
+
+	        break;
+
+			case 'sas_shop_order_status' :
+				$order_status = get_post_meta(get_the_ID(), 'field-order-status' , true);
+				echo Sas_Shop_Core_Helpers::sas_shop_order_status_names($order_status);
+			break;
+
+
+
+
+	    }
+	}
+
+
+
+	/**
+	 * sas_shop_order_metabox_sku function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_order_metabox_sku(){
     	add_meta_box( 'field-order-sku', 'Order Details', array(&$this,'sas_shop_order_sku_display_meta'), 'sas_shop_orders', 'normal', 'high' );
 	}
+	/**
+	 * sas_shop_order_sku_display_meta function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_order_sku_display_meta(){
 		global $post;
 		echo $post->post_title;
+		echo '<span style="color:#cccccc;">  - Payment Method: ';
+		$payment_method = get_post_meta($post->ID, 'field-order-payment-method', true );
+		if($payment_method == 'bank_transfer'){
+			echo __( 'Bank transfer', $this->plugin_name );
+		}
+		if( $payment_method == 'cash_on_delivery' ){
+			echo __( 'Cash on delivery', $this->plugin_name );
+		}
+		echo '</span>';
+
+		$return_args = array('order' => $post->ID , 'order_status' => 'order_completed', 'sas_shop_confirmation' => get_post_meta( $post->ID, 'field-order-confirmation' ) );
+		$url = get_the_permalink( get_option( 'sas_shop_sas-shop-checkout_page_id' ) );
+
+		$return_url = add_query_arg( $return_args , $url );
+
+		echo '<p><a href="' . $return_url . '" target="_blank">' . __('Customer Order', $this->plugin_name ) .'</a></p>';
 	}
 
+	/**
+	 * sas_shop_order_products_metabox function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_order_products_metabox(){
 
 		global $post;
-		$productsIDs    = get_post_meta( $post->ID, 'field-order-product-id', false );
+		$productsIDs    = get_post_meta( $post->ID, 'field-order-cart-products', false );
 		if(count($productsIDs) > 0){
+
+			$productsIDs = json_decode( $productsIDs[0] );
+			$productsIDs = json_decode(json_encode($productsIDs),true);
 
 			add_meta_box( 'field-order-products-list', 'Order Products', array(&$this,'sas_shop_order_products_list_display'), 'sas_shop_orders', 'normal', 'low' );
 		}
 
 	}
+
+	/**
+	 * sas_shop_order_products_list_display function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_order_products_list_display(){
 
 		global $post;
@@ -426,12 +635,18 @@ class Sas_Shop_Admin {
 		$grand_total    = 0;
 		$totalTaxes     = 0;
 		$shipping       = get_post_meta( $post->ID, 'field-order-shipping', true );
-		$productsIDs    = get_post_meta( $post->ID, 'field-order-product-id', false );
+
+		$productsIDs    = get_post_meta( $post->ID, 'field-order-cart-products', false );
+
+		$productsIDs = json_decode( $productsIDs[0] );
+		$productsIDs = json_decode(json_encode($productsIDs),true);
 
 		$totalOrderQty  = 0;
 
 		if($shipping == 'free_shipping'){
 			$shippingName = Sas_Shop_Option::get_option( 'shipping_free_name' );
+			$shippingPrice = 0;
+			$shippingTax   = 0;
 		}
 		if($shipping == 'flat_shipping'){
 			$shippingName = Sas_Shop_Option::get_option( 'shipping_flat_name' );
@@ -441,12 +656,7 @@ class Sas_Shop_Admin {
 
 
 		if( count( $productsIDs ) > 0 ){
-			echo '<style type="text/css">
-.sas-shop-order-table-meta  {border-collapse:collapse;border-spacing:0;border-color:#ccc;border:none;margin:0px auto;width:100%;}
-.sas-shop-order-table-meta td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;}
-.sas-shop-order-table-meta th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#f0f0f0; text-align: justify;}
-@media screen and (max-width: 767px) {.sas-shop-order-table-meta {width: auto !important;}.sas-shop-order-table-meta col {width: auto !important;}.sas-shop-order-table-meta-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;margin: auto 0px;}}</style>
-';
+
 			echo '<div class="sas-shop-order-wrap"><table class="sas-shop-order-table-meta">
 					  <tr>
 					  	<th>Image</th>
@@ -456,14 +666,15 @@ class Sas_Shop_Admin {
 					    <th>TOTAL</th>
 					    <th>VAT</th>
 					  </tr>';
-			foreach( $productsIDs as $key => $productID ){
+			foreach( $productsIDs as $key => $product ){
 
-			$product       =  get_post($productID);
-			//$productSKU    =  get_post_meta( $productID ,'field-product-sku' , true);
-			$productPrice  =  get_post_meta( $productID ,'field-product-price' , true);
 
-			$productTax    =  get_post_meta( $productID ,'field-sas-product-taxes' , true);
-			$productQty    =  get_post_meta( $post->ID ,'field-order-product-' . $productID . '-qty' , true);
+			$productPost   =  get_post($product['product_id']);
+
+			$productPrice  =  get_post_meta($productPost->ID, 'field-product-price', true);
+
+			$productTax    =  get_post_meta( $productPost->ID ,'field-sas-product-taxes' , true);
+			$productQty    =  $product['product_qty'];
 			//$total         = $productQty * $productPrice;
 
 			$totalOrderQty += $productQty;
@@ -473,13 +684,16 @@ class Sas_Shop_Admin {
 
 			$totalTax      = round( ( ( $productPrice * $productQty ) * ( $productTax / 100 ) ) , 2 );
 
+			$productPrice = Sas_Shop_Core_Helpers::sas_shop_format_decimal( $productPrice, Sas_Shop_Option::get_option( 'sas_shop_price_num_decimals' ) );
+			$totalTax = Sas_Shop_Core_Helpers::sas_shop_format_decimal( $totalTax, Sas_Shop_Option::get_option( 'sas_shop_price_num_decimals' ) );
+
 			echo '<tr>
-					<td>' . get_the_post_thumbnail( $productID, array( 24, 24) ) . '</td>
-					<td colspan="3"><a href="'. admin_url('post.php?post=' . $productID . '&action=edit') . '">' . $product->post_title . '</a></td>
+					<td>' . get_the_post_thumbnail( $productPost->ID, array( 24, 24) ) . '</td>
+					<td colspan="3"><a href="'. admin_url('post.php?post=' . $productPost->ID . '&action=edit') . '">' . $productPost->post_title . '</a></td>
 				    <td>' . $productPrice . ' ' . $currencySymbol . '</td>
 				    <td>' . $productQty . '</td>
 				    <td>' . $total . ' ' . $currencySymbol . '</td>
-				    <td>' . $totalTax . '</td>
+				    <td>' . $totalTax . ' ' . $currencySymbol . '</td>
 				  </tr>';
 
 
@@ -521,12 +735,18 @@ class Sas_Shop_Admin {
 
 	}
 
+	/**
+	 * sas_shop_create_order_on_new function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_create_order_on_new(){
 
 		if( 'GET' == $_SERVER['REQUEST_METHOD'] && $_SERVER['REQUEST_URI']  == '/wp-admin/post-new.php?post_type=sas_shop_orders'){
 
 
-			if( current_user_can( 'administrator' ) ){
+			if( current_user_can( 'administrator' ) || current_user_can( 'sas_shop_manager' ) ){
 
 				$my_post = array(
 					'post_title'   => 'Order',
@@ -616,10 +836,24 @@ class Sas_Shop_Admin {
 
 		}
 	}
+
+	/**
+	 * sas_shop_orders_remove_post_type_support function.
+	 *
+	 * @access public
+	 * @return void
+	 */
 	public function sas_shop_orders_remove_post_type_support() {
     	remove_post_type_support( 'sas_shop_orders', 'title' );
 	}
 
+	/**
+	 * sas_shop_taxes_remove_post_type_support function.
+	 *
+	 * @access public
+	 * @static
+	 * @return void
+	 */
 	public static function sas_shop_taxes_remove_post_type_support() {
     	remove_post_type_support( 'sas_shop_taxes', 'title' );
 		remove_post_type_support( 'sas_shop_taxes', 'editor' );
@@ -705,19 +939,12 @@ class Sas_Shop_Admin {
 	}
 	public function sas_order_metaboxes(){
 
-
-
 		$sasOrderMetabox = new Sas_Order_Metabox($this->plugin_name, $this->version, 'sas_shop_orders');
 		$meta_boxes = $sasOrderMetabox->init_metaboxes();
 
 		foreach($meta_boxes as $metabox){
 			new CMB_Meta_Box( $metabox );
 		}
-
-
-
-
-
 	}
 
 	/**

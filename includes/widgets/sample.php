@@ -1,7 +1,7 @@
 <?php
 
 // Create custom widget class extending WPH_Widget
-class Pl_My_Recent_Posts_Widget extends WPH_Widget {
+class Sas_Shop_Widget extends WPH_Widget {
 
 	function __construct() {
 
@@ -86,6 +86,16 @@ class Pl_My_Recent_Posts_Widget extends WPH_Widget {
 			// Class, rows, cols
 			'class' => 'widefat',
 			'std'   => '[sas-shop-cart-display]'
+		    ),
+		    array(
+			// Field name/label
+			'name' => __( 'Hide on Cart', $this->plugin_name ),
+			// Field description
+			'desc' => __( 'Cart shortcode.', $this->plugin_name ),
+			// Field id
+			'id' => 'hide_mini_cart',
+			'type' => 'hidden',
+			'std'   => 'hide_mini_cart'
 		    ),
 		    /*
 		    // Taxonomy Field
@@ -201,7 +211,7 @@ class Pl_My_Recent_Posts_Widget extends WPH_Widget {
 		// Here you would get the most recent posts based on the selected amount: $instance['amount']
 		// Then return those posts on the $out variable ready for the output
 
-		$out .= '[sas-shop-cart-display]';
+		$out .= do_shortcode('[sas-shop-cart-display]');
 
 		$out .= $args[ 'after_widget' ];
 		echo $out;
@@ -210,11 +220,11 @@ class Pl_My_Recent_Posts_Widget extends WPH_Widget {
 }
 
 // Register widget
-if ( !function_exists( 'pl_my_register_widget' ) ) {
+if ( !function_exists( 'sas_shop_mini_cart_register_widget' ) ) {
 
-	function pl_my_register_widget() {
-		register_widget( 'Pl_My_Recent_Posts_Widget' );
+	function sas_shop_mini_cart_register_widget() {
+		register_widget( 'Sas_Shop_Widget' );
 	}
 
-	add_action( 'widgets_init', 'pl_my_register_widget', 1 );
+	add_action( 'widgets_init', 'sas_shop_mini_cart_register_widget', 1 );
 }
